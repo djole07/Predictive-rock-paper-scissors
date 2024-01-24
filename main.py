@@ -251,91 +251,112 @@ def update_q_dict(q_dict,
   q_dict[s] = tuple(action_values)
   return q_dict
 
-"""# Creating environment"""
 
-env = Environment()
-
-q_dict = {s:(random.random(), random.random(), random.random()) for s in env.get_all_states()}
-
-"""# Playing 99 rounds"""
-
-''' Starting screen '''
-oled.fill(0)
-oled.text('99', 0, 5)
-oled.text('rundi', 0, 15)
-oled.text('papir', 70, 0)
-oled.text('kamen', 70, 10)
-oled.text('makaze', 70, 20)
-oled.show()
-
-for num_games in range(100):
-
-    # player_move = "SCISSORS" # @param ["ROCK", "PAPER", "SCISSORS"]
-    gamma = 0.95 # @param {type:"slider", min:0, max:1, step:0.05}
+''' Forming new game '''
+while True:
+    """# Creating environment"""
     
-    # If player touches all the buttons, game ends
-    if paper_pin.value() == 1 and rock_pin.value() == 1 and scissors_pin.value() == 1:
-        break
+    env = Environment()
+
+    q_dict = {s:(random.random(), random.random(), random.random()) for s in env.get_all_states()}
+
+    """# Playing 99 rounds"""
+
+    ''' Starting screen '''
+    oled.fill(0)
+    oled.text('99', 0, 5)
+    oled.text('rundi', 0, 15)
+    oled.text('papir', 70, 0)
+    oled.text('kamen', 70, 10)
+    oled.text('makaze', 70, 20)
+    oled.show()
+
+    for num_games in range(100):
+
+        # player_move = "SCISSORS" # @param ["ROCK", "PAPER", "SCISSORS"]
+        gamma = 0.95 # @param {type:"slider", min:0, max:1, step:0.05}
+        
+        # If player touches all the buttons, game ends
+        if paper_pin.value() == 1 and rock_pin.value() == 1 and scissors_pin.value() == 1:
+            break
+        
+        # Waiting for player input
+        player_action = -1
+        while player_action<0:
+            if paper_pin.value() == 1:
+                player_action = PAPER
+            elif rock_pin.value() == 1:
+                player_action = ROCK
+            elif scissors_pin.value() == 1:
+                player_action = SCISSORS
+        
+        state = env.get_state()
+        #greedy_policy = create_greedy_policy(q_dict)
+        #opponent_action = greedy_policy(state)
+
+        opponent_action = policy_equivalent(q_dict, state)
+
+        #print(f"Player plays {player_action}, agent plays {opponent_action}")
+        print(f"Computer play {opponent_action}")
+
+        score,total = env.check_winner(player_action, opponent_action)
+        q_dict=update_q_dict(q_dict, state, opponent_action, -score, gamma=gamma)
+
+        new_state = env.update_state(player_action, opponent_action)
+
+        print_score(score)
+        # print(f"Total score : {total}")
+
+        # print(f"Player next move: {find_losing_attack(greedy_policy(new_state))}")
+
+        oled.fill(0)
+        oled.text(print_action(player_action)+ ' - ' + print_action(opponent_action), 0, 0)
+        oled.text(print_score(score), 0, 10)
+        oled.text('runda ' + str(num_games) + '.', 0, 25)
+        oled.text('rez ' + str(total), 70, 25)
+        oled.show()
+        
+        machine.sleep(350)
+
+        ''' 3s timer showing on line 3 of display '''
+        '''
+        oled.text("3", 0, 20)
+        oled.show()
+        machine.sleep(1000);
+        oled.text("2", 20, 20)
+        oled.show()
+        machine.sleep(1000);
+        oled.text("1", 40, 20)
+        oled.show()
+        machine.sleep(1000);'''
+
+    ''' Ending screen '''
+    oled.fill(0)
+    oled.text('Br. rundi:', 0, 0)
+    oled.text(str(num_games), 90, 0)
+    oled.text('Rezultat :', 0, 10)
+    oled.text(str(total), 90, 10)
     
-    # Waiting for player input
+    if total >= 0:
+        oled.text('dobar :)', 0, 20)
+    else:
+        oled.text('los :)', 0, 20)
+    oled.show()
+
+    machine.sleep(1000)
+    
     player_action = -1
     while player_action<0:
         if paper_pin.value() == 1:
             player_action = PAPER
-        elif rock_pin.value() == 1:
-            player_action = ROCK
         elif scissors_pin.value() == 1:
-            player_action = SCISSORS
+            player_action = 100
+        
+    if player_action == 100:
+        break
     
-    state = env.get_state()
-    #greedy_policy = create_greedy_policy(q_dict)
-    #opponent_action = greedy_policy(state)
+    machine.sleep(200)
 
-    opponent_action = policy_equivalent(q_dict, state)
-
-    #print(f"Player plays {player_action}, agent plays {opponent_action}")
-    print(f"Computer play {opponent_action}")
-
-    score,total = env.check_winner(player_action, opponent_action)
-    q_dict=update_q_dict(q_dict, state, opponent_action, -score, gamma=gamma)
-
-    new_state = env.update_state(player_action, opponent_action)
-
-    print_score(score)
-    # print(f"Total score : {total}")
-
-    # print(f"Player next move: {find_losing_attack(greedy_policy(new_state))}")
-
-    oled.fill(0)
-    oled.text(print_action(player_action)+ ' - ' + print_action(opponent_action), 0, 0)
-    oled.text(print_score(score), 0, 10)
-    oled.text('runda ' + str(num_games) + '.', 0, 25)
-    oled.text('rez ' + str(total), 70, 25)
-    oled.show()
-    
-    machine.sleep(350)
-
-    ''' 3s timer showing on line 3 of display '''
-    '''
-    oled.text("3", 0, 20)
-    oled.show()
-    machine.sleep(1000);
-    oled.text("2", 20, 20)
-    oled.show()
-    machine.sleep(1000);
-    oled.text("1", 40, 20)
-    oled.show()
-    machine.sleep(1000);'''
-
-''' Ending screen '''
 oled.fill(0)
-oled.text('Br. rundi:', 0, 0)
-oled.text(str(num_games), 90, 0)
-oled.text('Rezultat :', 0, 10)
-oled.text(str(total), 90, 10)
-if total >= 0:
-    oled.text('dobar :)', 0, 20)
-else:
-    oled.text('los :)', 0, 20)
-    
+oled.text('CAO! :)', 0, 15)
 oled.show()
